@@ -7,13 +7,6 @@ import { ViewCreateOption } from './create-option';
 import { IView } from './i-view';
 
 export class View<T> extends cc.Component implements IView {
-    private m_ActiveAction: () => void;
-
-    private m_ID: string;
-    public get id() {
-        return this.m_ID;
-    }
-
     private m_Vm: { [key: string]: any };
     public get vm() {
         this.m_Vm ??= new Proxy({}, {
@@ -29,9 +22,19 @@ export class View<T> extends cc.Component implements IView {
         return this.m_Vm;
     }
 
+    private m_ID: string;
+    public get id() {
+        return this.m_ID;
+    }
+
     private m_Input: T;
     protected get input() {
         return this.m_Input;
+    }
+
+    private m_Init: Boolean;
+    protected get isInit() {
+        return this.m_Init;
     }
 
     private m_MvvmMembers: Promise<IMvvmMember[]>;
@@ -55,26 +58,27 @@ export class View<T> extends cc.Component implements IView {
     }
 
     public async init(opt: ViewCreateOption) {
+        if (this.m_Init)
+            return;
+
+        this.m_Init = true;
         this.m_ID ??= opt.viewID;
         this.m_Input = opt.input;
-        if (this.m_ActiveAction) {
-            await this.onActive();
-        } else {
-            return new Promise<void>(s => {
-                this.m_ActiveAction = s;
-            });
-        }
-    }
+        ioc.inject(this);
 
-    public async onLoad() {
         const members = await this.mvvmMembers;
         for (const r of members) {
             r.bindEvent();
         }
 
-        ioc.inject(this);
         await this.onActive();
-        this.m_ActiveAction?.();
+    }
+
+    public async onSafeClick(evt: cc.EventTouch, s: string) {
+        const eventData = JSON.parse(s);
+        const nodeButton = evt.currentTarget as cc.Node;
+        await this[eventData.handler](nodeButton, eventData.customEventData);
+        nodeButton.emit(eventData.event);
     }
 
     protected async getVm<T>() {
