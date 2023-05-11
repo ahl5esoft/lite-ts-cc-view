@@ -7,7 +7,7 @@ export abstract class ViewServiceBase {
         [viewID: string]: {
             view: IView;
             timerNo: any;
-        }
+        };
     } = {};
 
     public constructor(

@@ -1,3 +1,5 @@
+import { UITransform } from 'cc';
+
 import { IView } from './i-view';
 import { ModalOpenOption } from './modal-open-option';
 import { ModalServiceBase } from './modal-service-base';
@@ -19,9 +21,15 @@ export class ViewModalService extends ModalServiceBase {
     }
 
     public async open(opt: ModalOpenOption) {
-        const view = await this.onOpen(opt);
-        if (opt.zIndex)
+        let view = this.m_Open[opt.viewID];
+        if (!view) {
+            view = await this.onOpen(opt);
+            this.m_Open[opt.viewID] = view;
+            await view.init(opt);
+        }
+        if (opt.zIndex) {
             view.node.setSiblingIndex(opt.zIndex);
-        this.m_Open[opt.viewID] = view;
+            view.node.getComponent(UITransform).priority = opt.zIndex;
+        }
     }
 }
